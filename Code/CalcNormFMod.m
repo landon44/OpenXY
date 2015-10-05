@@ -8,9 +8,8 @@ F = eye(3);
 clear global rs cs Gs
 
 % I2 = genEBSDPatternHybrid(g,params2,F,lattice,a1,b1,c1,axs);
-switch Settings.HROIMMethod
     
-    case 'Dynamic Simulated'
+if strcmp('Dynamic Simulated',Settings.HROIMMethod)
         xstar=PC(1);
         ystar=PC(2);
         zstar=PC(3);
@@ -27,8 +26,12 @@ switch Settings.HROIMMethod
             [R U] = poldec(F);
             g=R'*g;
         end
-        
-    case 'Simulated'
+        U=U-eye(3);
+        U = triu(U);
+        normF_Dyn=sum(sum((U.*U)));
+        Settings.HROIMMethod = 'Simulated';
+end 
+if strcmp('Simulated',Settings.HROIMMethod)
         % Remove rotational error first DTF 7/15/14
         for i = 1:3
             I1 = genEBSDPatternHybrid(g,params2,eye(3),lattice,a1,b1,c1,axs);
@@ -53,28 +56,10 @@ switch Settings.HROIMMethod
             %     [F SSE] = CalcF(I1,I0,g,F,ImageInd,Settings,Settings.Material);% ** same change as above DTF 7/21/14
             [F SSE] = CalcF(I1,I0,g,F,ImageInd,Settings,Settings.Phase{ImageInd});
         end
-        
         [R U] = poldec(F);
+        U=U-eye(3);
+        U = triu(U);
+        normF_Kin=sum(sum((U.*U)));
 end
 
-U=U-eye(3);
-U = triu(U);
-% D = F-eye(3);
-
-% angle = GeneralMisoCalc(R,eye(3),lattice);
-
-% if angle >= 0.5
-%     normF = sum(sum((D.*D)));
-% else
-%normF = sum(sum((U.*U))); experimentally removed by Craig and Tim and replaced by below, Aug27 2014
-normF=sum(sum((U.*U)));
-% end
-
-% disp(F)
-% disp(U)
-% disp(PC)
-% disp(SSE)
-% disp(angle)
-
-% save I2 I2
-% keyboard
+normF = normF_Dyn*normF_Kin;
