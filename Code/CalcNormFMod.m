@@ -4,6 +4,8 @@ params2{1} = PC(1);
 params2{2} = PC(2);
 params2{3} = PC(3);
 F = eye(3);
+normF_Dyn = 1;
+normF_Kin = 1;
 
 clear global rs cs Gs
 
