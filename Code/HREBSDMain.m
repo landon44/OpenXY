@@ -266,6 +266,7 @@ F = repmat({zeros(3)},1,Settings.ScanLength);
 g = repmat({zeros(3,1)},1,Settings.ScanLength);
 U = repmat({zeros(3)},1,Settings.ScanLength);
 SSE = repmat({0},1,Settings.ScanLength);
+XX = repmat({0},1,Settings.ScanLength);
 
 if Settings.DoParallel > 1
     NumberOfCores = Settings.DoParallel;
@@ -293,7 +294,7 @@ if Settings.DoParallel > 1
         %or a structure F.a F.b F.c of deformation gradient tensors for
         %each point in the L grid
         
-        [F{ImageInd}, g{ImageInd}, U{ImageInd}, SSE{ImageInd}] = ...
+        [F{ImageInd}, g{ImageInd}, U{ImageInd}, SSE{ImageInd}, XX{ImageInd}] = ...
             GetDefGradientTensor(ImageInd,Settings,Settings.Phase{ImageInd});
         
         %{
@@ -371,6 +372,7 @@ for jj = 1:Settings.ScanLength
         data.phi1rn{jj} = phi1;
         data.PHIrn{jj} = PHI;
         data.phi2rn{jj} = phi2;
+        Settings.XX = XX;
         
     end
     
