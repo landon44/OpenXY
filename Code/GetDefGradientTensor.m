@@ -1,4 +1,4 @@
-function [F, g, U, SSE] = GetDefGradientTensor(ImageInd,Settings,curMaterial)
+function [F, g, U, SSE,XX] = GetDefGradientTensor(ImageInd,Settings,curMaterial)
 %GETDEFGRADIENTTENSOR
 %[F g U SSE] = GetDefGradientTensor(ImageInd,Settings)
 %Takes in the HREBSD Settings structure and the image index
@@ -139,7 +139,7 @@ switch Settings.HROIMMethod
 
         %Initialize
         clear global rs cs Gs
-        [F1,SSE1] = CalcF(RefImage,ScanImage,gr,eye(3),ImageInd,Settings,curMaterial);
+        [F1,SSE1,XX] = CalcF(RefImage,ScanImage,gr,eye(3),ImageInd,Settings,curMaterial);
         
         %%%%New stuff to remove rotation error from strain measurement DTF  7/14/14
         for iq=1:3
@@ -150,7 +150,7 @@ switch Settings.HROIMMethod
                 %Settings.PixelSize,Settings.ImageFilter(3),Settings.ImageFilter(4));
             
             clear global rs cs Gs
-            [F1,SSE1] = CalcF(RefImage,ScanImage,gr,eye(3),ImageInd,Settings,curMaterial);
+            [F1,SSE1,XX] = CalcF(RefImage,ScanImage,gr,eye(3),ImageInd,Settings,curMaterial);
         end
         %%%%%
         
@@ -169,7 +169,7 @@ switch Settings.HROIMMethod
 
         %Initialize
         clear global rs cs Gs
-        [F1,SSE1] = CalcF(RefImage,ScanImage,gr,eye(3),ImageInd,Settings,curMaterial);
+        [F1,SSE1,XX] = CalcF(RefImage,ScanImage,gr,eye(3),ImageInd,Settings,curMaterial);
         
         %%%%New stuff to remove rotation error from strain measurement DTF  7/14/14
         for iq=1:2
@@ -180,7 +180,7 @@ switch Settings.HROIMMethod
                 Settings.PixelSize,Settings.ImageFilter(3),Settings.ImageFilter(4));
             
             clear global rs cs Gs
-            [F1,SSE1] = CalcF(RefImage,ScanImage,gr,eye(3),ImageInd,Settings,curMaterial);
+            [F1,SSE1,XX] = CalcF(RefImage,ScanImage,gr,eye(3),ImageInd,Settings,curMaterial);
         end
         %%%%%
         
@@ -213,7 +213,7 @@ switch Settings.HROIMMethod
                 Settings.ImageFilter(3), Settings.ImageFilter(4));
             %         keyboard
             clear global rs cs Gs
-            [F1,SSE1] = CalcF(NewRefImage,ScanImage,gr,FTemp,ImageInd,Settings,curMaterial);
+            [F1,SSE1,XX] = CalcF(NewRefImage,ScanImage,gr,FTemp,ImageInd,Settings,curMaterial);
             
         end
         
@@ -232,7 +232,7 @@ switch Settings.HROIMMethod
         
         clear global rs cs Gs
 %         disp(RefImagePath);
-        [F1,SSE1] = CalcF(RefImage,ScanImage,gr,eye(3),ImageInd,Settings,curMaterial,RefInd);
+        [F1,SSE1,XX] = CalcF(RefImage,ScanImage,gr,eye(3),ImageInd,Settings,curMaterial,RefInd);
         
     case 'Hybrid'
         %Use simulated pattern method on one reference image then use
