@@ -317,7 +317,7 @@ else
         %         tic
 %         disp(ImageInd)
         
-        [F{ImageInd}, g{ImageInd}, U{ImageInd}, SSE{ImageInd}] = ...
+        [F{ImageInd}, g{ImageInd}, U{ImageInd}, SSE{ImageInd}, XX{ImageInd}] = ...
             GetDefGradientTensor(ImageInd,Settings,Settings.Phase{ImageInd});
         
         % commented out this (outputs strain matrix - I think - DTF 5/15/14)
