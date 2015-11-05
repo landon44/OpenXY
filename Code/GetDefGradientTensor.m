@@ -1,4 +1,4 @@
-function [F, g, U, SSE, XX] = GetDefGradientTensor(ImageInd,Settings,curMaterial)
+function [F, g, U, SSE1, XX] = GetDefGradientTensor(ImageInd,Settings,curMaterial)
 %GETDEFGRADIENTTENSOR
 %[F g U SSE] = GetDefGradientTensor(ImageInd,Settings)
 %Takes in the HREBSD Settings structure and the image index
@@ -33,8 +33,8 @@ if DoLGrid
     
     if isempty(ScanImage) || isempty(LegAImage) || isempty(LegCImage)
         
-        F.a =  -eye(3); F.b = -eye(3); F.c = -eye(3); SSE.a = 101; SSE.b = 101;
-        SSE.b = 101; U = -eye(3);
+        F.a =  -eye(3); F.b = -eye(3); F.c = -eye(3); SSE1.a = 101; SSE1.b = 101;
+        SSE1.b = 101; U = -eye(3);
         g = euler2gmat(Angles(ImageInd,1),Angles(ImageInd,2),Angles(ImageInd,3));
         XX = {};
         
@@ -52,7 +52,7 @@ else
     g = euler2gmat(Settings.Angles(ImageInd,1) ...
         ,Settings.Angles(ImageInd,2),Settings.Angles(ImageInd,3));
     if isempty(ScanImage)
-        F = -eye(3); SSE = 101; U = -eye(3); XX = {};
+        F = -eye(3); SSE1 = 101; U = -eye(3); XX = {};
         return;
     end
     
@@ -122,6 +122,8 @@ gr=g;
 
 %Get Reference Image depending on the chosen HROIM Method (so far these are
 %either Simulated or Real. Plan on adding Sim/Real Hybrid
+iter = 1;
+ITER = Settings.IterationLimit+3;
 switch Settings.HROIMMethod
     
     case 'Dynamic Simulated'
@@ -151,11 +153,15 @@ switch Settings.HROIMMethod
             RefImage = genEBSDPatternHybrid_fromEMSoft(gr,xstar,ystar,zstar,pixsize,mperpix,elevang,curMaterial,Av);
             
             clear global rs cs Gs
-            [F1,SSE1,XX] = CalcF(RefImage,ScanImage,gr,eye(3),ImageInd,Settings,curMaterial);
+            [F1{iter},SSE1{iter},XX{iter}] = CalcF(RefImage,ScanImage,gr,eye(3),ImageInd,Settings,curMaterial);
+            iter = iter + 1;
         end
         %%%%%
         
     case 'Simulated'
+        F1 = repmat({zeros(3)},1,ITER);
+        SSE1 = zeros(1,ITER);
+        XX = cell(1,ITER);
         
         %         RefImage = genEBSDPatternHybrid(gr,paramspat,eye(3),lattice,al,bl,cl,axs); % testing next line instead *****
         RefImage = genEBSDPatternHybrid(gr,paramspat,eye(3),Material.lattice,Material.a1,Material.b1,Material.c1,Material.axs);
@@ -170,34 +176,36 @@ switch Settings.HROIMMethod
 
         %Initialize
         clear global rs cs Gs
-        [F1,SSE1,XX] = CalcF(RefImage,ScanImage,gr,eye(3),ImageInd,Settings,curMaterial);
+        [F1{iter},SSE1(iter),XX{iter}] = CalcF(RefImage,ScanImage,gr,eye(3),ImageInd,Settings,curMaterial);
+        iter = iter + 1;
         
         %%%%New stuff to remove rotation error from strain measurement DTF  7/14/14
         for iq=1:2
-            [rr,uu]=poldec(F1); % extract the rotation part of the deformation, rr
+            [rr,uu]=poldec(F1{iter-1}); % extract the rotation part of the deformation, rr
             gr=rr'*gr; % correct the rotation component of the deformation so that it doesn't affect strain calc
             RefImage = genEBSDPatternHybrid(gr,paramspat,eye(3),Material.lattice,Material.a1,Material.b1,Material.c1,Material.axs);
             RefImage = custimfilt(RefImage,Settings.ImageFilter(1), ...
                 Settings.PixelSize,Settings.ImageFilter(3),Settings.ImageFilter(4));
             
             clear global rs cs Gs
-            [F1,SSE1,XX] = CalcF(RefImage,ScanImage,gr,eye(3),ImageInd,Settings,curMaterial);
+            [F1{iter},SSE1(iter),XX{iter}] = CalcF(RefImage,ScanImage,gr,eye(3),ImageInd,Settings,curMaterial);
+            iter = iter + 1;
         end
         %%%%%
         
         %Improved convergence routine should replace this loop:
         
         for ii = 1:Settings.IterationLimit
-            if SSE1 > 25 % need to make this a variable in the AdvancedSettings GUI
+            if SSE1(iter-1) > 25 % need to make this a variable in the AdvancedSettings GUI
                 if ii == 1
                     display(['Didn''t make it in to the iteration loop for:' Settings.ImageNamesList{ImageInd}])
                 end
-                g = euler2gmat(Settings.Angles(ImageInd,1),Settings.Angles(ImageInd,2),Settings.Angles(ImageInd,3)); 
-                F = -eye(3); SSE = 101; U = -eye(3);
-                XX.XX = zeros(1,length(roixc)); XX.CS = zeros(1,length(roixc)); XX.MI = zeros(1,length(roixc)); XX.MI_total = 0;
-                return;
+                %g = euler2gmat(Settings.Angles(ImageInd,1),Settings.Angles(ImageInd,2),Settings.Angles(ImageInd,3)); 
+                %F = -eye(3); SSE = 101; U = -eye(3);
+                %XX.XX = zeros(1,length(roixc)); XX.CS = zeros(1,length(roixc)); XX.MI = zeros(1,length(roixc)); XX.MI_total = 0;
+                break;
             end
-            [r1,u1]=poldec(F1);
+            [r1,u1]=poldec(F1{iter-1});
             U1=u1;
             R1=r1;
             FTemp=R1*U1; %**** isn't this just F1 - why did we bother doing this????
@@ -215,8 +223,8 @@ switch Settings.HROIMMethod
                 Settings.ImageFilter(3), Settings.ImageFilter(4));
             %         keyboard
             clear global rs cs Gs
-            [F1,SSE1,XX] = CalcF(NewRefImage,ScanImage,gr,FTemp,ImageInd,Settings,curMaterial);
-            
+            [F1{iter},SSE1(iter),XX{iter}] = CalcF(NewRefImage,ScanImage,gr,eye(3),ImageInd,Settings,curMaterial);
+            iter = iter + 1;
         end
         
         
@@ -235,7 +243,10 @@ switch Settings.HROIMMethod
         clear global rs cs Gs
 %         disp(RefImagePath);
         [F1,SSE1,XX] = CalcF(RefImage,ScanImage,gr,eye(3),ImageInd,Settings,curMaterial,RefInd);
-        
+        F1{iter} = F1;
+        SSE1{iter} = SSE1;
+        XX{iter} = XX;
+        iter = iter + 1;
     case 'Hybrid'
         %Use simulated pattern method on one reference image then use
         %Real for all others in that grain.
@@ -244,10 +255,9 @@ switch Settings.HROIMMethod
 end
 
 %Calculate Mutual Information over entire Image
-XX.MI_total = CalcMutualInformation(RefImage,ScanImage);
+XX{end}.MI_total = CalcMutualInformation(RefImage,ScanImage);
 
 if DoLGrid
-    
     %For the leg points just set it to Real Sample all the
     %time
     KeepFCalcMethod = Settings.FCalcMethod;
@@ -256,16 +266,16 @@ if DoLGrid
     
     % evaluate point a using b as the reference
     clear global rs cs Gs
-    [F.a SSE.a] = CalcF(ScanImage,LegAImage,gr,eye(3),ImageInd,Settings,curMaterial,ImageInd); %note - sending in index of scan point for now - no PC correction!!!
+    [F.a SSE1.a] = CalcF(ScanImage,LegAImage,gr,eye(3),ImageInd,Settings,curMaterial,ImageInd); %note - sending in index of scan point for now - no PC correction!!!
     
     % evaluate point c using b as the refrerence
     clear global rs cs Gs
-    [F.c SSE.c] = CalcF(ScanImage,LegCImage,gr,eye(3),ImageInd,Settings,curMaterial,ImageInd);%note - sending in index of scan point for now - no PC correction!!!
+    [F.c SSE1.c] = CalcF(ScanImage,LegCImage,gr,eye(3),ImageInd,Settings,curMaterial,ImageInd);%note - sending in index of scan point for now - no PC correction!!!
     
     Settings.FCalcMethod = KeepFCalcMethod;
     
-    F.b = F1;
-    SSE.b = SSE1;
+    F.b = F1{end};
+    SSE1.b = SSE1{end};
     
     [r.a u.a] = poldec(F.a);
     [r.b u.b] = poldec(F.b);
@@ -279,13 +289,15 @@ if DoLGrid
     U.b = u.b;
     U.c = u.c;
 else
-    SSE = SSE1;
-    [r u]=poldec(F1);
-    U=u;
-    R=r;
-    F=r*u;
-    g = R'*gr;
-    U=U-eye(3); %*****used to send it back before subtracting I - is this a problem????
+    g = cell(1,ITER);
+    U = cell(1,ITER);
+    for i = 1:ITER
+        [r u]=poldec(F1{i});
+        R=r;
+        F{i}=r*u;
+        g{i} = R'*gr;
+        U{i}=u-eye(3); %*****used to send it back before subtracting I - is this a problem????
+    end
 %     sum(sum(U.*U))
 %     U(1,1)
 %     U(3,3)

@@ -141,10 +141,11 @@ end
 %Use a parfor loop if allowed multiple processors.
 tic
 %Initialize Variables
-F = repmat({zeros(3)},1,Settings.ScanLength);
-g = repmat({zeros(3,1)},1,Settings.ScanLength);
-U = repmat({zeros(3)},1,Settings.ScanLength);
-SSE = repmat({0},1,Settings.ScanLength);
+ITER = Settings.IterationLimit+3;
+F = repmat({zeros(3)},Settings.ScanLength,ITER);
+g = repmat({zeros(3,1)},Settings.ScanLength,ITER);
+U = repmat({zeros(3)},Settings.ScanLength,ITER);
+SSE = zeros(Settings.ScanLength,ITER);
 
 if Settings.DoParallel > 1
     NumberOfCores = Settings.DoParallel;
@@ -172,7 +173,7 @@ if Settings.DoParallel > 1
         %or a structure F.a F.b F.c of deformation gradient tensors for
         %each point in the L grid
         
-        [F{ImageInd}, g{ImageInd}, U{ImageInd}, SSE{ImageInd}, XX(ImageInd)] = ...
+        [F(ImageInd,:) g(ImageInd,:) U(ImageInd,:) SSE(ImageInd,:) XX(ImageInd,:)] =...
             GetDefGradientTensor(ImageInd,Settings,Settings.Phase{ImageInd});
         
         %{
@@ -195,7 +196,9 @@ else
         %         tic
 %         disp(ImageInd)
         
-        [F{ImageInd}, g{ImageInd}, U{ImageInd}, SSE{ImageInd}, XX(ImageInd)] = ...
+        %[F1 g1 U1 SSE1 XX1] =...
+         %   GetDefGradientTensor(ImageInd,Settings,Settings.Phase{ImageInd});
+        [F(ImageInd,:), g(ImageInd,:), U(ImageInd,:), SSE(ImageInd,:), XX(ImageInd,:)] =...
             GetDefGradientTensor(ImageInd,Settings,Settings.Phase{ImageInd});
         
         % commented out this (outputs strain matrix - I think - DTF 5/15/14)
@@ -217,6 +220,13 @@ Time = toc/60;
 if Settings.DisplayGUI; disp(['Time to finish: ' num2str(Time) ' minutes']); end;
 
 %% Save output and write to .ang file
+save ('test.mat','F','g','U','SSE','XX');
+Settings.Iterations.F = F;
+Settings.Iterations.g = g;
+Settings.Iterations.U = U;
+Settings.Iterations.SSE = SSE;
+Settings.Iterations.XX = XX;
+
 for jj = 1:Settings.ScanLength
    
     data.IQ{jj} = Settings.IQ(jj);
@@ -241,15 +251,15 @@ for jj = 1:Settings.ScanLength
         data.Fc{jj} = F{jj}.c;
     else
         
-        [phi1 PHI phi2] = gmat2euler(g{jj});
-        Settings.SSE{jj} = SSE{jj};
-        Settings.g{jj} = g{jj};
-        data.SSE{jj} = SSE{jj};
-        data.F{jj} = F{jj};
+        [phi1 PHI phi2] = gmat2euler(g{jj,end});
+        Settings.SSE{jj} = SSE(jj,end);
+        Settings.g{jj} = g{jj,end};
+        data.SSE{jj} = SSE(jj,end);
+        data.F{jj} = F{jj,end};
         data.phi1rn{jj} = phi1;
         data.PHIrn{jj} = PHI;
         data.phi2rn{jj} = phi2;
-        Settings.XX = XX;
+        Settings.XX{jj} = XX{jj,end};
         
     end
     

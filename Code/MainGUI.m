@@ -72,6 +72,18 @@ if ~exist(OpenXYPath,'dir')
     save('SystemSettings','OpenXYPath');
 end
 
+%License stuff
+if ~exist('license_accepted','var') || ~license_accepted
+    license_accepted = LicenseGUI;
+end
+if license_accepted 
+    save('SystemSettings','license_accepted','-append');
+else
+    warndlg('Cannot run OpenXY without accept the license','OpenXY License')
+    delete(handles.MainGUI)
+    return
+end
+
 %Change working directory
 XYpath = fileparts(mfilename('fullpath'));
 if ~strcmp(pwd,XYpath)
@@ -159,7 +171,9 @@ function varargout = MainGUI_OutputFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Get default command line output from handles structure
-varargout{1} = handles.output;
+if ~isempty(handles)
+    varargout{1} = handles.output;
+end
 
 % --- Executes when user attempts to close MainGUI.
 function MainGUI_CloseRequestFcn(hObject, eventdata, handles)

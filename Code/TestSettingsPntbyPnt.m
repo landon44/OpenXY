@@ -62,6 +62,7 @@ Settings.DoShowPlot = 1;
 
 
 button = 1;
+count = 1;
 while(button==1)
     
     figure(99);
@@ -87,19 +88,20 @@ while(button==1)
     ind = indi(y,x);
 
     tic
-    [F g U SSE] = GetDefGradientTensor(ind,Settings,Settings.Phase{ind});
+    %[F g U SSE XX] = GetDefGradientTensor(ind,Settings,Settings.Phase{ind});
+    [F(count,:) g(count,:) U(count,:) SSE(count,:) XX(count,:)] = GetDefGradientTensor(ind,Settings,Settings.Phase{ind});
     toc
     
     set(figure(100),'Position',[pos(1)-pos(3)/2-10 pos(2)-pos(4) - 100 pos(3) pos(4)])
     set(figure(101),'Position',[pos(1)+pos(3)/2+10 pos(2)-pos(4) - 100 pos(3) pos(4)])
    
-    F
-    g
-    U
-    SSE
+    F{count,:};
+    g{count,:};
+    U{count,:};
+    SSE(count,:);
     
     Settings.ImageNamesList{ind}
-
+    count = count + 1;
 
     
 end
